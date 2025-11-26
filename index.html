@@ -298,32 +298,41 @@
         }
         
         function performSearch() {
-            const searchValue = document.getElementById('itemSearch').value.trim();
-            
-            if (!searchValue) {
-                document.getElementById('searchInfo').textContent = 'Menampilkan semua ' + allItems.length + ' item';
-                displayItems(allItems);
-                return;
-            }
-            
-            const searchLower = searchValue.toLowerCase();
-            const results = [];
-            
-            for (let i = 0; i < allItems.length; i++) {
-                const item = allItems[i];
-                if (item.code.toLowerCase().includes(searchLower) || item.name.toLowerCase().includes(searchLower)) {
-                    results.push(item);
-                }
-            }
-            
-            document.getElementById('searchInfo').textContent = 'Ditemukan ' + results.length + ' item dari ' + allItems.length + ' item';
-            
-            if (results.length === 0) {
-                document.getElementById('itemList').innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;"><strong>Tidak ada hasil untuk "' + searchValue + '"</strong></div>';
-            } else {
-                displayItems(results);
-            }
+    const searchValue = document.getElementById('itemSearch').value.trim();
+    
+    if (!searchValue) {
+        document.getElementById('searchInfo').textContent = 
+            'Menampilkan semua ' + allItems.length + ' item';
+        displayItems(allItems);
+        return;
+    }
+    
+    const searchLower = searchValue.toLowerCase();
+    const results = [];
+    
+    for (let i = 0; i < allItems.length; i++) {
+        const item = allItems[i];
+
+        // CONVERT AGAR AMAN
+        const code = String(item.code || "").toLowerCase();
+        const name = String(item.name || "").toLowerCase();
+        
+        if (code.includes(searchLower) || name.includes(searchLower)) {
+            results.push(item);
         }
+    }
+    
+    document.getElementById('searchInfo').textContent = 
+        'Ditemukan ' + results.length + ' item dari ' + allItems.length + ' item';
+    
+    if (results.length === 0) {
+        document.getElementById('itemList').innerHTML = 
+            '<div style="padding: 20px; text-align: center; color: #ef4444;"><strong>Tidak ada hasil untuk "' 
+            + searchValue + '"</strong></div>';
+    } else {
+        displayItems(results);
+    }
+}  
         
         function displayItems(items) {
             const itemList = document.getElementById('itemList');
