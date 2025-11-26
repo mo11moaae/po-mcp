@@ -404,14 +404,16 @@
                     <div class="form-group" id="itemSearchGroup" style="display:none;">
                         <label>Cari Item (Nama/Kode)</label>
                         <div class="search-box">
-                            <input type="text" id="itemSearch" placeholder="Ketik nama atau kode item..." oninput="filterItems()">
+                            <input type="text" id="itemSearch" placeholder="Ketik nama atau kode item..." 
+                                   autocomplete="off"
+                                   style="padding-right: 70px;">
                             <span class="search-icon">🔍</span>
-                            <button class="clear-search" id="clearSearch" onclick="clearSearch()">✕</button>
+                            <button class="clear-search" id="clearSearch" type="button" style="display:none;">✕</button>
                         </div>
                         <div id="searchInfo" class="search-results-info"></div>
                         <div class="item-list" id="itemList"></div>
                         <small style="display: block; margin-top: 5px; color: #6b7280;">
-                            💡 Tip: Ketik beberapa huruf untuk mencari item
+                            💡 Tip: Ketik beberapa huruf kode atau nama item
                         </small>
                     </div>
                     
@@ -483,6 +485,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             setTodayDate();
             checkLoginStatus();
+            
+            console.log('=== APP INITIALIZED ===');
+            console.log('API_URL:', API_URL);
         });
         
         function setTodayDate() {
@@ -573,15 +578,98 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}?action=getItems&brand=${brand}`);
+                const response = await fetch(`${API_URL}?action=getItems&brand=${encodeURIComponent(brand)}`);
                 const data = await response.json();
-                allItems = data.items;
+                allItems = data.items || [];
+                
+                console.log('=== LOADED ITEMS ===');
+                console.log('Total items:', allItems.length);
+                console.log('Items:', allItems);
                 
                 document.getElementById('itemSearchGroup').style.display = 'block';
-                document.getElementById('itemSearch').value = '';
-                displayItems(allItems);
+                const searchInput = document.getElementById('itemSearch');
+                searchInput.value = '';
+                
+                // CRITICAL: Setup search functionality
+                searchInput.onkeyup = function() {
+                    performSearch();
+                };
+                searchInput.oninput = function() {
+                    performSearch();
+                };
+                
+                // Setup clear button
+                const clearBtn = document.getElementById('clearSearch');
+                clearBtn.onclick = function() {
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    performSearch();
+                };
+                
+                console.log('=== SEARCH SETUP COMPLETE ===');
+                
+                if (allItems.length === 0) {
+                    document.getElementById('searchInfo').textContent = 'Tidak ada item untuk brand ini';
+                    document.getElementById('itemList').innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Tidak ada item tersedia</div>';
+                } else {
+                    document.getElementById('searchInfo').textContent = `Menampilkan semua ${allItems.length} item`;
+                    displayItems(allItems);
+                }
             } catch (error) {
+                console.error('Load items error:', error);
                 showAlert('appAlert', 'Gagal memuat item', 'error');
+            }
+        }
+        
+        function performSearch() {
+            const searchInput = document.getElementById('itemSearch');
+            const clearBtn = document.getElementById('clearSearch');
+            const searchInfo = document.getElementById('searchInfo');
+            const searchValue = searchInput.value.trim();
+            
+            console.log('=== SEARCH TRIGGERED ===');
+            console.log('Search value:', searchValue);
+            console.log('Total items to search:', allItems.length);
+            
+            // Show/hide clear button
+            clearBtn.style.display = searchValue ? 'block' : 'none';
+            
+            // If empty, show all
+            if (!searchValue) {
+                console.log('Empty search - showing all items');
+                searchInfo.textContent = `Menampilkan semua ${allItems.length} item`;
+                displayItems(allItems);
+                return;
+            }
+            
+            // Perform search
+            const searchLower = searchValue.toLowerCase();
+            const results = [];
+            
+            for (let i = 0; i < allItems.length; i++) {
+                const item = allItems[i];
+                const codeMatch = item.code.toLowerCase().includes(searchLower);
+                const nameMatch = item.name.toLowerCase().includes(searchLower);
+                
+                if (codeMatch || nameMatch) {
+                    results.push(item);
+                }
+            }
+            
+            console.log('Search results:', results.length);
+            console.log('Results:', results);
+            
+            // Update UI
+            searchInfo.textContent = `Ditemukan ${results.length} item dari ${allItems.length} item`;
+            
+            if (results.length === 0) {
+                document.getElementById('itemList').innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #ef4444;">
+                        <strong>❌ Tidak ada hasil untuk "${searchValue}"</strong><br>
+                        <small style="color: #6b7280;">Coba kata kunci lain</small>
+                    </div>`;
+            } else {
+                displayItems(results, searchLower);
             }
         }
         
@@ -589,74 +677,134 @@
             const searchInput = document.getElementById('itemSearch');
             const clearBtn = document.getElementById('clearSearch');
             const searchInfo = document.getElementById('searchInfo');
-            const search = searchInput.value.toLowerCase().trim();
+            const searchValue = searchInput.value;
+            
+            console.log('Search triggered:', searchValue); // Debug
+            console.log('Total items:', allItems.length); // Debug
             
             // Show/hide clear button
-            if (search) {
+            if (searchValue.trim()) {
                 clearBtn.classList.add('active');
             } else {
                 clearBtn.classList.remove('active');
             }
             
-            if (search === '') {
-                displayItems(allItems);
+            // If empty, show all
+            if (!searchValue.trim()) {
                 searchInfo.textContent = `Menampilkan semua ${allItems.length} item`;
+                displayItems(allItems);
                 return;
             }
             
-            const filtered = allItems.filter(item => {
-                const codeMatch = item.code.toLowerCase().includes(search);
-                const nameMatch = item.name.toLowerCase().includes(search);
-                return codeMatch || nameMatch;
-            });
+            // Filter items
+            const searchLower = searchValue.toLowerCase().trim();
+            const filtered = [];
             
-            // Update search info
+            for (let i = 0; i < allItems.length; i++) {
+                const item = allItems[i];
+                const codeMatch = item.code.toLowerCase().indexOf(searchLower) !== -1;
+                const nameMatch = item.name.toLowerCase().indexOf(searchLower) !== -1;
+                
+                if (codeMatch || nameMatch) {
+                    filtered.push(item);
+                }
+            }
+            
+            console.log('Filtered results:', filtered.length); // Debug
+            
+            // Update info
             searchInfo.textContent = `Ditemukan ${filtered.length} item dari ${allItems.length} item`;
             
-            displayItems(filtered);
-            
-            // Show message if no results
+            // Display results
             if (filtered.length === 0) {
                 const itemList = document.getElementById('itemList');
-                itemList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">❌ Tidak ada item yang cocok dengan pencarian "<strong>' + search + '</strong>"</div>';
+                itemList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444;">
+                    <strong>❌ Tidak ada hasil untuk "${searchValue}"</strong><br>
+                    <small style="color: #6b7280;">Coba kata kunci lain</small>
+                </div>`;
+            } else {
+                displayItems(filtered, searchLower);
             }
         }
         
         function clearSearch() {
-            document.getElementById('itemSearch').value = '';
-            document.getElementById('clearSearch').classList.remove('active');
+            const searchInput = document.getElementById('itemSearch');
+            searchInput.value = '';
+            searchInput.focus();
             filterItems();
         }
         
-        function displayItems(items) {
+        function displayItems(items, searchTerm) {
             const itemList = document.getElementById('itemList');
             itemList.innerHTML = '';
             
-            if (items.length === 0) {
+            console.log('=== DISPLAYING ITEMS ===');
+            console.log('Items to display:', items.length);
+            
+            if (!items || items.length === 0) {
                 itemList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Tidak ada item tersedia</div>';
                 return;
             }
             
-            const searchTerm = document.getElementById('itemSearch').value.toLowerCase().trim();
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'item-option';
+                
+                let codeText = item.code;
+                let nameText = item.name;
+                
+                // Highlight search term
+                if (searchTerm) {
+                    try {
+                        const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\        function displayItems(items, searchTerm = '') {
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';
+            
+            if (!items || items.length === 0) {
+                itemList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">Tidak ada item tersedia</div>';
+                return;
+            }
+            
+            console.log('Displaying items:', items.length); // Debug
             
             items.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'item-option';
                 
-                let codeHTML = item.code;
-                let nameHTML = item.name;
+                let codeText = item.code;
+                let nameText = item.name;
                 
-                // Highlight search term
+                // Highlight search term if exists
                 if (searchTerm) {
-                    const regex = new RegExp(`(${searchTerm})`, 'gi');
-                    codeHTML = item.code.replace(regex, '<mark style="background: #fef08a; padding: 0 2px;">$1</mark>');
-                    nameHTML = item.name.replace(regex, '<mark style="background: #fef08a; padding: 0 2px;">$1</mark>');
+                    const regex = new RegExp('(' + searchTerm + ')', 'gi');
+                    codeText = item.code.replace(regex, '<mark style="background: #fef08a; padding: 0 2px; font-weight: bold;">$1</mark>');
+                    nameText = item.name.replace(regex, '<mark style="background: #fef08a; padding: 0 2px; font-weight: bold;">$1</mark>');
                 }
                 
-                div.innerHTML = `<strong>${codeHTML}</strong> - ${nameHTML}`;
+                div.innerHTML = `<strong>${codeText}</strong> - ${nameText}`;
                 div.onclick = () => addSelectedItem(item);
                 itemList.appendChild(div);
             });
+        }') + ')', 'gi');
+                        codeText = item.code.replace(regex, '<mark style="background: #fef08a; padding: 0 2px; font-weight: bold;">$1</mark>');
+                        nameText = item.name.replace(regex, '<mark style="background: #fef08a; padding: 0 2px; font-weight: bold;">$1</mark>');
+                    } catch (e) {
+                        console.log('Highlight error:', e);
+                    }
+                }
+                
+                div.innerHTML = `<strong>${codeText}</strong> - ${nameText}`;
+                div.onclick = function() {
+                    console.log('Item clicked:', item);
+                    addSelectedItem(item);
+                };
+                
+                itemList.appendChild(div);
+                
+                if (index === 0) console.log('First item rendered:', item);
+            });
+            
+            console.log('=== DISPLAY COMPLETE ===');
         }
         
         function addSelectedItem(item) {
