@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order MCP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .login-form, .main-app {
+            display: none;
+        }
+        
+        .login-form.active, .main-app.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            display: inline-block;
+        }
+        
+        .user-info {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info span {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .item-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .item-option {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .item-option:hover {
+            background: #f3f4f6;
+        }
+        
+        .item-option:last-child {
+            border-bottom: none;
+        }
+        
+        .selected-items {
+            margin-top: 20px;
+        }
+        
+        .selected-item {
+            background: #f9fafb;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .selected-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .selected-item-name {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+        
+        .qty-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .qty-group input {
+            padding: 8px;
+        }
+        
+        .discount-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .preview-modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        
+        .preview-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .preview-header {
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .preview-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .preview-row strong {
+            color: #667eea;
+        }
+        
+        .preview-items {
+            margin: 20px 0;
+        }
+        
+        .preview-item {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .admin-section {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .admin-section.active {
+            display: block;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-right: 35px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Purchase Order MCP</h1>
+            <p id="headerSubtitle">Sistem Purchase Order</p>
+        </div>
+        
+        <div class="content">
+            <!-- Login Form -->
+            <div class="login-form active" id="loginForm">
+                <h2 style="margin-bottom: 20px; color: #333;">Login</h2>
+                <div id="loginAlert"></div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" placeholder="Masukkan username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Masukkan password">
+                </div>
+                <button class="btn btn-primary" onclick="login()">Login</button>
+            </div>
+            
+            <!-- Main Application -->
+            <div class="main-app" id="mainApp">
+                <div class="user-info">
+                    <span id="userDisplay"></span>
+                    <button class="btn btn-danger" onclick="logout()">Logout</button>
+                </div>
+                
+                <div id="appAlert"></div>
+                
+                <!-- PO Form -->
+                <div id="poForm">
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="poDate" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nama Toko *</label>
+                        <input type="text" id="storeName" placeholder="Masukkan nama toko" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Alamat Toko *</label>
+                        <textarea id="storeAddress" rows="3" placeholder="Masukkan alamat toko" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pilih Brand *</label>
+                        <select id="brandSelect" onchange="loadItems()">
+                            <option value="">-- Pilih Brand --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="itemSearchGroup" style="display:none;">
+                        <label>Cari Item (Nama/Kode)</label>
+                        <div class="search-box">
+                            <input type="text" id="itemSearch" placeholder="Ketik untuk mencari..." oninput="filterItems()">
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        <div class="item-list" id="itemList"></div>
+                    </div>
+                    
+                    <div class="selected-items" id="selectedItems"></div>
+                    
+                    <div class="form-group">
+                        <label>Diskon</label>
+                        <div class="discount-grid">
+                            <input type="text" id="discount1" placeholder="Diskon 1">
+                            <input type="text" id="discount2" placeholder="Diskon 2">
+                            <input type="text" id="discount3" placeholder="Diskon 3">
+                            <input type="text" id="discount4" placeholder="Diskon 4">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Keterangan</label>
+                        <textarea id="notes" rows="3" placeholder="Keterangan tambahan (opsional)"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="previewPO()">Preview & Kirim</button>
+                </div>
+                
+                <!-- Admin Section -->
+                <div class="admin-section" id="adminSection">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">Admin Panel</h3>
+                    
+                    <div class="form-group">
+                        <label>Tambah Brand</label>
+                        <input type="text" id="newBrand" placeholder="Nama brand baru">
+                        <button class="btn btn-success" onclick="addBrand()">Tambah Brand</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tambah Item</label>
+                        <select id="itemBrand">
+                            <option value="">-- Pilih Brand --</option>
+                        </select>
+                        <input type="text" id="itemCode" placeholder="Kode Item" style="margin-top: 8px;">
+                        <input type="text" id="itemName" placeholder="Nama Item" style="margin-top: 8px;">
+                        <button class="btn btn-success" onclick="addItem()">Tambah Item</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h2>Preview Purchase Order</h2>
+            </div>
+            <div id="previewBody"></div>
+            <button class="btn btn-success" onclick="submitPO()">Kirim PO</button>
+            <button class="btn btn-secondary" onclick="closePreview()">Kembali</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - GANTI INI DENGAN WEB APP URL ANDA
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxuF6QQAiqxF7KrVxyYp9DK7nTOHNfw87RoPIdwVFdd7FDVY0czp1AzF_Vp4ODd3vV02A/exec
+';
+        
+        let currentUser = null;
+        let allItems = [];
+        let selectedItemsData = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setTodayDate();
+            checkLoginStatus();
+        });
+        
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('poDate').value = today;
+        }
+        
+        function checkLoginStatus() {
+            const user = localStorage.getItem('poUser');
+            if (user) {
+                currentUser = JSON.parse(user);
+                showMainApp();
+            }
+        }
+        
+        async function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            
+            if (!username || !password) {
+                showAlert('loginAlert', 'Username dan password harus diisi', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}?action=login&username=${username}&password=${password}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('poUser', JSON.stringify(currentUser));
+                    showMainApp();
+                } else {
+                    showAlert('loginAlert', 'Username atau password salah', 'error');
+                }
+            } catch (error) {
+                showAlert('loginAlert', 'Gagal login. Periksa koneksi internet.', 'error');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('poUser');
+            currentUser = null;
+            selectedItemsData = [];
+            document.getElementById('loginForm').classList.add('active');
+            document.getElementById('mainApp').classList.remove('active');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+        
+        async function showMainApp() {
+            document.getElementById('loginForm').classList.remove('active');
+            document.getElementById('mainApp').classList.add('active');
+            document.getElementById('userDisplay').textContent = `${currentUser.name} (${currentUser.role})`;
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminSection').classList.add('active');
+            }
+            
+            await loadBrands();
+        }
+        
+        async function loadBrands() {
+            try {
+                const response = await fetch(`${API_URL}?action=getBrands`);
+                const data = await response.json();
+                
+                const brandSelect = document.getElementById('brandSelect');
+                const itemBrandSelect = document.getElementById('itemBrand');
+                
+                brandSelect.innerHTML = '<option value="">-- Pilih Brand --</option>';
+                itemBrandSelect.innerHTML = '<option value="">-- Pilih Brand --</option>';
+                
+                data.brands.forEach(brand => {
+                    brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+                    itemBrandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+                });
+            } catch (error) {
+                showAlert('appAlert', 'Gagal memuat brand', 'error');
+            }
+        }
+        
+        async function loadItems() {
+            const brand = document.getElementById('brandSelect').value;
+            if (!brand) {
+                document.getElementById('itemSearchGroup').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}?action=getItems&brand=${brand}`);
+                const data = await response.json();
+                allItems = data.items;
+                
+                document.getElementById('itemSearchGroup').style.display = 'block';
+                document.getElementById('itemSearch').value = '';
+                displayItems(allItems);
+            } catch (error) {
+                showAlert('appAlert', 'Gagal memuat item', 'error');
+            }
+        }
+        
+        function filterItems() {
+            const search = document.getElementById('itemSearch').value.toLowerCase();
+            const filtered = allItems.filter(item => 
+                item.code.toLowerCase().includes(search) || 
+                item.name.toLowerCase().includes(search)
+            );
+            displayItems(filtered);
+        }
+        
+        function displayItems(items) {
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';
+            
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-option';
+                div.innerHTML = `<strong>${item.code}</strong> - ${item.name}`;
+                div.onclick = () => addSelectedItem(item);
+                itemList.appendChild(div);
+            });
+        }
+        
+        function addSelectedItem(item) {
+            if (selectedItemsData.find(i => i.code === item.code)) {
+                showAlert('appAlert', 'Item sudah ditambahkan', 'error');
+                return;
+            }
+            
+            selectedItemsData.push({...item, qtyCarton: 0, qtyPcs: 0});
+            renderSelectedItems();
+        }
+        
+        function renderSelectedItems() {
+            const container = document.getElementById('selectedItems');
+            container.innerHTML = '<h3 style="margin-bottom: 10px;">Item yang Dipilih</h3>';
+            
+            selectedItemsData.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'selected-item';
+                div.innerHTML = `
+                    <div class="selected-item-header">
+                        <div class="selected-item-name">${item.code} - ${item.name}</div>
+                        <button class="btn btn-danger" onclick="removeItem(${index})">Hapus</button>
+                    </div>
+                    <div class="qty-inputs">
+                        <div class="qty-group">
+                            <label style="font-size: 12px;">Qty Karton</label>
+                            <input type="number" min="0" value="${item.qtyCarton}" 
+                                   onchange="updateQty(${index}, 'carton', this.value)">
+                        </div>
+                        <div class="qty-group">
+                            <label style="font-size: 12px;">Qty Pcs</label>
+                            <input type="number" min="0" value="${item.qtyPcs}" 
+                                   onchange="updateQty(${index}, 'pcs', this.value)">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function updateQty(index, type, value) {
+            if (type === 'carton') {
+                selectedItemsData[index].qtyCarton = parseInt(value) || 0;
+            } else {
+                selectedItemsData[index].qtyPcs = parseInt(value) || 0;
+            }
+        }
+        
+        function removeItem(index) {
+            selectedItemsData.splice(index, 1);
+            renderSelectedItems();
+        }
+        
+        function previewPO() {
+            const storeName = document.getElementById('storeName').value.trim();
+            const storeAddress = document.getElementById('storeAddress').value.trim();
+            
+            if (!storeName || !storeAddress) {
+                showAlert('appAlert', 'Nama toko dan alamat harus diisi', 'error');
+                return;
+            }
+            
+            if (selectedItemsData.length === 0) {
+                showAlert('appAlert', 'Pilih minimal 1 item', 'error');
+                return;
+            }
+            
+            const hasQty = selectedItemsData.some(item => item.qtyCarton > 0 || item.qtyPcs > 0);
+            if (!hasQty) {
+                showAlert('appAlert', 'Masukkan jumlah pesanan untuk minimal 1 item', 'error');
+                return;
+            }
+            
+            const poData = {
+                date: document.getElementById('poDate').value,
+                storeName: storeName,
+                storeAddress: storeAddress,
+                brand: document.getElementById('brandSelect').value,
+                items: selectedItemsData.filter(item => item.qtyCarton > 0 || item.qtyPcs > 0),
+                discount1: document.getElementById('discount1').value.trim(),
+                discount2: document.getElementById('discount2').value.trim(),
+                discount3: document.getElementById('discount3').value.trim(),
+                discount4: document.getElementById('discount4').value.trim(),
+                notes: document.getElementById('notes').value.trim(),
+                salesName: currentUser.name
+            };
+            
+            let previewHTML = `
+                <div class="preview-row"><strong>Tanggal:</strong> <span>${poData.date}</span></div>
+                <div class="preview-row"><strong>Sales:</strong> <span>${poData.salesName}</span></div>
+                <div class="preview-row"><strong>Nama Toko:</strong> <span>${poData.storeName}</span></div>
+                <div class="preview-row"><strong>Alamat:</strong> <span>${poData.storeAddress}</span></div>
+                <div class="preview-row"><strong>Brand:</strong> <span>${poData.brand}</span></div>
+                <div class="preview-items"><strong>Items:</strong>
+            `;
+            
+            poData.items.forEach(item => {
+                previewHTML += `
+                    <div class="preview-item">
+                        ${item.code} - ${item.name}<br>
+                        <small>Karton: ${item.qtyCarton} | Pcs: ${item.qtyPcs}</small>
+                    </div>
+                `;
+            });
+            
+            previewHTML += '</div>';
+            
+            if (poData.discount1 || poData.discount2 || poData.discount3 || poData.discount4) {
+                previewHTML += '<div class="preview-row"><strong>Diskon:</strong><span>';
+                if (poData.discount1) previewHTML += poData.discount1 + ' ';
+                if (poData.discount2) previewHTML += poData.discount2 + ' ';
+                if (poData.discount3) previewHTML += poData.discount3 + ' ';
+                if (poData.discount4) previewHTML += poData.discount4;
+                previewHTML += '</span></div>';
+            }
+            
+            if (poData.notes) {
+                previewHTML += `<div class="preview-row"><strong>Keterangan:</strong> <span>${poData.notes}</span></div>`;
+            }
+            
+            document.getElementById('previewBody').innerHTML = previewHTML;
+            document.getElementById('previewModal').classList.add('active');
+            
+            window.currentPOData = poData;
+        }
+        
+        function closePreview() {
+            document.getElementById('previewModal').classList.remove('active');
+        }
+        
+        async function submitPO() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'submitPO',
+                        data: window.currentPOData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closePreview();
+                    showAlert('appAlert', 'PO berhasil dikirim!', 'success');
+                    resetForm();
+                } else {
+                    showAlert('appAlert', 'Gagal mengirim PO', 'error');
+                }
+            } catch (error) {
+                showAlert('appAlert', 'Gagal mengirim PO. Periksa koneksi.', 'error');
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('storeName').value = '';
+            document.getElementById('storeAddress').value = '';
+            document.getElementById('brandSelect').value = '';
+            document.getElementById('discount1').value = '';
+            document.getElementById('discount2').value = '';
+            document.getElementById('discount3').value = '';
+            document.getElementById('discount4').value = '';
+            document.getElementById('notes').value = '';
+            selectedItemsData = [];
+            document.getElementById('selectedItems').innerHTML = '';
+            document.getElementById('itemSearchGroup').style.display = 'none';
+            setTodayDate();
+        }
+        
+        async function addBrand() {
+            const brandName = document.getElementById('newBrand').value.trim();
+            if (!brandName) {
+                showAlert('appAlert', 'Nama brand harus diisi', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'addBrand',
+                        brand: brandName
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('appAlert', 'Brand berhasil ditambahkan', 'success');
+                    document.getElementById('newBrand').value = '';
+                    loadBrands();
+                } else {
+                    showAlert('appAlert', 'Gagal menambah brand', 'error');
+                }
+            } catch (error) {
+                showAlert('appAlert', 'Gagal menambah brand', 'error');
+            }
+        }
+        
+        async function addItem() {
+            const brand = document.getElementById('itemBrand').value;
+            const code = document.getElementById('itemCode').value.trim();
+            const name = document.getElementById('itemName').value.trim();
+            
+            if (!brand || !code || !name) {
+                showAlert('appAlert', 'Semua field item harus diisi', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'addItem',
+                        brand: brand,
+                        code: code,
+                        name: name
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('appAlert', 'Item berhasil ditambahkan', 'success');
+                    document.getElementById('itemCode').value = '';
+                    document.getElementById('itemName').value = '';
+                } else {
+                    showAlert('appAlert', 'Gagal menambah item', 'error');
+                }
+            } catch (error) {
+                showAlert('appAlert', 'Gagal menambah item', 'error');
+            }
+        }
+        
+        function showAlert(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
